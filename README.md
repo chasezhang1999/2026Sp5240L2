@@ -16,7 +16,7 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 
 - Image captioning: `Salesforce/blip-image-captioning-base`
 - Story generation: `google/flan-t5-small`
-- Text-to-speech: `facebook/mms-tts-eng`
+- Text-to-speech: `Matthijs/mms-tts-eng`
 - UI framework: `Streamlit`
 
 ## Why This Version Is Better

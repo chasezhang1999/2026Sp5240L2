@@ -11,7 +11,7 @@ from transformers import pipeline
 
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
 STORY_MODEL = "google/flan-t5-small"
-TTS_MODEL = "facebook/mms-tts-eng"
+TTS_MODEL = "Matthijs/mms-tts-eng"
 MIN_WORDS = 50
 MAX_WORDS = 100
 
