@@ -5,8 +5,9 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 ## Features
 
 - Upload an image in PNG or JPG format
+- Take a photo directly with a phone or webcam
 - Generate an image caption with a Hugging Face model
-- Turn the caption into a child-friendly 50-100 word story
+- Turn the caption into a child-friendly 50-100 word story with a few emoji
 - Convert the story to speech
 - Play the audio in the browser
 - Download the generated story as text or MP3
@@ -20,11 +21,11 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 
 ## Why This Version Is Better
 
-- Hugging Face pipelines are cached, so the app does not reload models every time.
+- The code keeps a simple function-based structure that is easier to explain in class.
 - The app processes uploaded images in memory instead of writing temporary files to disk.
 - Story output is cleaned to reduce repeated sentences.
 - The generated story is kept within the assignment word limit.
-- Audio is cached and can be replayed or downloaded.
+- Audio can be replayed and downloaded after it is generated.
 
 ## Run Locally
 

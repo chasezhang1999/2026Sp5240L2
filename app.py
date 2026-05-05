@@ -21,15 +21,13 @@ st.set_page_config(
 )
 
 
-@st.cache_resource(show_spinner=False)
 def load_caption_pipeline():
-    """Load the captioning model once per app session."""
+    """Load the captioning model."""
     return pipeline("image-to-text", model=CAPTION_MODEL)
 
 
-@st.cache_resource(show_spinner=False)
 def load_story_pipeline():
-    """Load the story generation model once per app session."""
+    """Load the story generation model."""
     return pipeline("text2text-generation", model=STORY_MODEL)
 
 
@@ -99,6 +97,7 @@ def generate_story(caption: str) -> str:
         "Write a warm and imaginative story for children aged 3 to 10. "
         f"Use only {MIN_WORDS} to {MAX_WORDS} words. "
         "Write 4 to 6 short sentences in simple English. "
+        "Add 1 to 3 suitable emoji naturally in the story. "
         "Do not repeat the same idea or sentence. "
         f"Base the story on this image description: {caption}"
     )
@@ -118,7 +117,6 @@ def generate_story(caption: str) -> str:
     return story
 
 
-@st.cache_data(show_spinner=False)
 def text_to_speech(text: str, language: str = "en") -> bytes:
     """Convert text to MP3 bytes for playback and download."""
     audio_buffer = BytesIO()
@@ -160,21 +158,31 @@ def load_uploaded_image(uploaded_file) -> tuple[Image.Image, bytes]:
 
 
 def main():
-    st.title("AI Storytelling App for Kids")
+    st.title("AI Storytelling App for Kids 📖")
     st.write(
-        "Upload a picture and the app will create a short story, then read it aloud."
+        "Upload a picture or take a photo, and the app will create a short story, then read it aloud."
     )
     st.caption(
-        "The first run may take longer because the Hugging Face models need to load."
+        "The app uses Hugging Face for image captioning and story generation, and gTTS for audio."
     )
 
-    uploaded_file = st.file_uploader(
-        "Upload an image",
-        type=["png", "jpg", "jpeg"],
+    source = st.radio(
+        "Choose an image source",
+        ["Upload an image", "Take a photo"],
+        horizontal=True,
     )
+
+    uploaded_file = None
+    if source == "Upload an image":
+        uploaded_file = st.file_uploader(
+            "Upload an image",
+            type=["png", "jpg", "jpeg"],
+        )
+    else:
+        uploaded_file = st.camera_input("Take a picture with your camera")
 
     if uploaded_file is None:
-        st.info("Please upload a PNG or JPG image to begin.")
+        st.info("Please upload a PNG or JPG image, or take a photo to begin.")
         return
 
     try:
@@ -202,7 +210,7 @@ def main():
         st.write(st.session_state["caption"])
 
     if "story" in st.session_state:
-        st.subheader("Generated Story")
+        st.subheader("Generated Story ✨")
         st.write(st.session_state["story"])
         st.download_button(
             "Download Story as Text",
