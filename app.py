@@ -2,14 +2,16 @@ import hashlib
 from io import BytesIO
 from typing import Optional
 
+import numpy as np
 import streamlit as st
-from gtts import gTTS
 from PIL import Image, ImageOps, UnidentifiedImageError
+from scipy.io.wavfile import write as write_wav
 from transformers import pipeline
 
 
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
 STORY_MODEL = "google/flan-t5-small"
+TTS_MODEL = "facebook/mms-tts-eng"
 MIN_WORDS = 50
 MAX_WORDS = 100
 
@@ -29,6 +31,11 @@ def load_caption_pipeline():
 def load_story_pipeline():
     """Load the story generation model."""
     return pipeline("text2text-generation", model=STORY_MODEL)
+
+
+def load_tts_pipeline():
+    """Load the text-to-speech model."""
+    return pipeline("text-to-audio", model=TTS_MODEL)
 
 
 def generate_caption(image: Image.Image) -> str:
@@ -117,21 +124,29 @@ def generate_story(caption: str) -> str:
     return story
 
 
-def text_to_speech(text: str, language: str = "en") -> bytes:
-    """Convert text to MP3 bytes for playback and download."""
+def text_to_speech(text: str) -> tuple[np.ndarray, int, bytes]:
+    """Convert text to speech with a Hugging Face TTS model."""
+    tts_pipeline = load_tts_pipeline()
+    output = tts_pipeline(text)
+    audio = output["audio"]
+    sample_rate = output["sampling_rate"]
+
+    if audio.ndim == 2:
+        audio = audio.T
+
+    audio = audio.astype(np.float32)
     audio_buffer = BytesIO()
-    tts = gTTS(text=text, lang=language, slow=False)
-    tts.write_to_fp(audio_buffer)
+    write_wav(audio_buffer, sample_rate, audio)
     audio_buffer.seek(0)
-    return audio_buffer.getvalue()
+    return audio, sample_rate, audio_buffer.getvalue()
 
 
-def build_story(image: Image.Image) -> tuple[str, str, bytes]:
+def build_story(image: Image.Image) -> tuple[str, str, np.ndarray, int, bytes]:
     """Run the full image -> caption -> story -> audio pipeline."""
     caption = generate_caption(image)
     story = generate_story(caption)
-    audio_bytes = text_to_speech(story)
-    return caption, story, audio_bytes
+    audio_array, sample_rate, audio_bytes = text_to_speech(story)
+    return caption, story, audio_array, sample_rate, audio_bytes
 
 
 def get_upload_signature(file_bytes: bytes) -> str:
@@ -145,6 +160,8 @@ def reset_outputs_on_new_upload(upload_signature: Optional[str]) -> None:
     if upload_signature and upload_signature != previous_signature:
         st.session_state.pop("caption", None)
         st.session_state.pop("story", None)
+        st.session_state.pop("audio_array", None)
+        st.session_state.pop("audio_sample_rate", None)
         st.session_state.pop("audio_bytes", None)
         st.session_state["last_upload_signature"] = upload_signature
 
@@ -163,7 +180,7 @@ def main():
         "Upload a picture or take a photo, and the app will create a short story, then read it aloud."
     )
     st.caption(
-        "The app uses Hugging Face for image captioning and story generation, and gTTS for audio."
+        "The app uses Hugging Face for image captioning, story generation, and text-to-speech."
     )
 
     source = st.radio(
@@ -198,9 +215,11 @@ def main():
     if st.button("Generate Story", type="primary"):
         try:
             with st.spinner("Creating a story and audio for you..."):
-                caption, story, audio_bytes = build_story(image)
+                caption, story, audio_array, sample_rate, audio_bytes = build_story(image)
                 st.session_state["caption"] = caption
                 st.session_state["story"] = story
+                st.session_state["audio_array"] = audio_array
+                st.session_state["audio_sample_rate"] = sample_rate
                 st.session_state["audio_bytes"] = audio_bytes
         except Exception as error:
             st.error(f"An error occurred while generating the story: {error}")
@@ -219,14 +238,16 @@ def main():
             mime="text/plain",
         )
 
-    if "audio_bytes" in st.session_state:
+    if "audio_array" in st.session_state and "audio_sample_rate" in st.session_state:
         st.subheader("Story Audio")
-        st.audio(st.session_state["audio_bytes"], format="audio/mp3")
+        st.audio(st.session_state["audio_array"], sample_rate=st.session_state["audio_sample_rate"])
+
+    if "audio_bytes" in st.session_state:
         st.download_button(
             "Download Story Audio",
             data=st.session_state["audio_bytes"],
-            file_name="story.mp3",
-            mime="audio/mpeg",
+            file_name="story.wav",
+            mime="audio/wav",
         )
 
 

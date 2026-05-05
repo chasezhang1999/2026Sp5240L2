@@ -8,15 +8,15 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 - Take a photo directly with a phone or webcam
 - Generate an image caption with a Hugging Face model
 - Turn the caption into a child-friendly 50-100 word story with a few emoji
-- Convert the story to speech
+- Convert the story to speech with a Hugging Face TTS model
 - Play the audio in the browser
-- Download the generated story as text or MP3
+- Download the generated story as text or WAV
 
 ## Models and Tools
 
 - Image captioning: `Salesforce/blip-image-captioning-base`
 - Story generation: `google/flan-t5-small`
-- Text-to-speech: `gTTS`
+- Text-to-speech: `facebook/mms-tts-eng`
 - UI framework: `Streamlit`
 
 ## Why This Version Is Better
