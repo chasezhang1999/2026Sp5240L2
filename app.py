@@ -6,16 +6,6 @@ from transformers import pipeline
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
 STORY_MODEL = "google/flan-t5-small"
 TTS_MODEL = "Matthijs/mms-tts-eng"
-DARK_WORDS = [
-    "death",
-    "dead",
-    "darkness",
-    "killed",
-    "kidnapped",
-    "incest",
-    "deceased",
-    "mysterious man",
-]
 
 
 st.set_page_config(page_title="Image to Audio Story", page_icon="📖")
@@ -41,28 +31,6 @@ def image_to_text(image):
     return result[0]["generated_text"]
 
 
-def has_dark_content(story):
-    story_lower = story.lower()
-    for word in DARK_WORDS:
-        if word in story_lower:
-            return True
-    return False
-
-
-def has_too_much_repetition(story):
-    sentences = [
-        sentence.strip().lower()
-        for sentence in story.split(".")
-        if sentence.strip()
-    ]
-    unique_sentences = set(sentences)
-    return len(sentences) >= 4 and len(unique_sentences) <= 2
-
-
-def is_too_short(story):
-    return len(story.split()) < 50
-
-
 def finish_sentence(story):
     for mark in [".", "!", "?"]:
         position = story.rfind(mark)
@@ -71,36 +39,18 @@ def finish_sentence(story):
     return story.strip() + "."
 
 
-def fallback_story(text):
-    return (
-        f"One sunny day, {text} became the start of a happy adventure. "
-        "The children laughed, shared their toys, and helped each other discover something new. "
-        "A gentle breeze danced around them, and everyone felt brave and kind. "
-        "When it was time to go home, they smiled and promised to play again tomorrow. 🌟"
-    )
-
-
 def text_to_story(text):
     story_pipe = load_story_pipeline()
     prompt = (
         "Write a warm and imaginative story for children aged 3 to 10. "
         "Use 50 to 100 words and add 1 to 3 suitable emoji naturally. "
-        "The story must be happy, safe, and not scary. "
-        "Do not mention death, darkness, violence, kidnapping, or adult topics. "
         f"Image description: {text}. Story:"
     )
     result = story_pipe(
         prompt,
         max_new_tokens=120,
-        no_repeat_ngram_size=3,
-        repetition_penalty=1.5,
     )
-    story = finish_sentence(result[0]["generated_text"].strip())
-
-    if has_dark_content(story) or has_too_much_repetition(story) or is_too_short(story):
-        story = fallback_story(text)
-
-    return story
+    return finish_sentence(result[0]["generated_text"].strip())
 
 
 def story_to_audio(story):
