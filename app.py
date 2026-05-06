@@ -6,6 +6,16 @@ from transformers import pipeline
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
 STORY_MODEL = "pranavpsv/genre-story-generator-v2"
 TTS_MODEL = "Matthijs/mms-tts-eng"
+DARK_WORDS = [
+    "death",
+    "dead",
+    "darkness",
+    "killed",
+    "kidnapped",
+    "incest",
+    "deceased",
+    "mysterious man",
+]
 
 
 st.set_page_config(page_title="Image to Audio Story", page_icon="📖")
@@ -31,15 +41,47 @@ def image_to_text(image):
     return result[0]["generated_text"]
 
 
+def has_dark_content(story):
+    story_lower = story.lower()
+    for word in DARK_WORDS:
+        if word in story_lower:
+            return True
+    return False
+
+
+def finish_sentence(story):
+    for mark in [".", "!", "?"]:
+        position = story.rfind(mark)
+        if position > 40:
+            return story[: position + 1].strip()
+    return story.strip() + "."
+
+
+def fallback_story(text):
+    return (
+        f"One sunny day, {text} became the start of a happy adventure. "
+        "The children laughed, shared their toys, and helped each other discover something new. "
+        "A gentle breeze danced around them, and everyone felt brave and kind. "
+        "When it was time to go home, they smiled and promised to play again tomorrow. 🌟"
+    )
+
+
 def text_to_story(text):
     story_pipe = load_story_pipeline()
     prompt = (
         "Write a warm and imaginative story for children aged 3 to 10. "
         "Use 50 to 100 words and add 1 to 3 suitable emoji naturally. "
+        "The story must be happy, safe, and not scary. "
+        "Do not mention death, darkness, violence, kidnapping, or adult topics. "
         f"Image description: {text}. Story:"
     )
-    result = story_pipe(prompt, max_new_tokens=120, return_full_text=False)
-    return result[0]["generated_text"].strip()
+    result = story_pipe(prompt, max_new_tokens=90, return_full_text=False)
+    story = finish_sentence(result[0]["generated_text"].strip())
+
+    if has_dark_content(story):
+        story = fallback_story(text)
+
+    return story
 
 
 def story_to_audio(story):
