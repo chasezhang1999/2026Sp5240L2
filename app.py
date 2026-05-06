@@ -28,7 +28,30 @@ def load_tts_pipeline():
 def image_to_text(image):
     caption_pipe = load_caption_pipeline()
     result = caption_pipe(image)
-    return result[0]["generated_text"]
+    caption = result[0]["generated_text"]
+    return clean_caption(caption)
+
+
+def clean_caption(caption):
+    caption = caption.replace(" illustration", "")
+    caption = caption.replace(" drawing", "")
+    caption = caption.replace(" cartoon", "")
+    return caption.strip()
+
+
+def expand_caption(caption):
+    story_pipe = load_story_pipeline()
+    prompt = (
+        f"Describe this scene in one rich sentence for a children's story: {caption}. "
+        "Mention the people, place, mood, and possible action."
+    )
+    result = story_pipe(prompt, max_new_tokens=60)
+    description = result[0]["generated_text"].strip()
+
+    if len(description.split()) < 8 or "describe this scene" in description.lower():
+        description = f"{caption} in a cheerful place with a friendly and playful mood"
+
+    return clean_caption(finish_sentence(description))
 
 
 def finish_sentence(story):
@@ -93,10 +116,14 @@ if uploaded_file is not None:
 
     if st.button("Generate Story"):
         with st.spinner("Generating the story..."):
-            scenario = image_to_text(image)
+            caption = image_to_text(image)
+            scenario = expand_caption(caption)
             story = text_to_story(scenario)
+            speech_output = story_to_audio(story)
             st.session_state["scenario"] = scenario
             st.session_state["story"] = story
+            st.session_state["audio_array"] = speech_output["audio"]
+            st.session_state["sample_rate"] = speech_output["sampling_rate"]
 
     if "scenario" in st.session_state:
         st.subheader("Image Caption")
@@ -106,9 +133,9 @@ if uploaded_file is not None:
         st.subheader("Generated Story ✨")
         st.write(st.session_state["story"])
 
-    if "story" in st.session_state and st.button("Play Audio"):
-        with st.spinner("Generating audio data..."):
-            speech_output = story_to_audio(st.session_state["story"])
-        audio_array = speech_output["audio"]
-        sample_rate = speech_output["sampling_rate"]
-        st.audio(audio_array, sample_rate=sample_rate)
+    if "audio_array" in st.session_state:
+        st.subheader("Story Audio")
+        st.audio(
+            st.session_state["audio_array"],
+            sample_rate=st.session_state["sample_rate"],
+        )
