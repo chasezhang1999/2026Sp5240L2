@@ -4,7 +4,7 @@ from transformers import pipeline
 
 
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "google/flan-t5-small"
+STORY_MODEL = "pranavpsv/genre-story-generator-v2"
 TTS_MODEL = "Matthijs/mms-tts-eng"
 
 
@@ -20,7 +20,7 @@ def load_caption_pipeline():
 
 @st.cache_resource
 def load_story_pipeline():
-    return pipeline("text2text-generation", model=STORY_MODEL)
+    return pipeline("text-generation", model=STORY_MODEL)
 
 
 @st.cache_resource
@@ -38,11 +38,10 @@ def text_to_story(text):
     story_pipe = load_story_pipeline()
     prompt = (
         "Write a warm and imaginative story for children aged 3 to 10. "
-        "Use 50 to 100 words. "
-        "Add 1 to 3 suitable emoji naturally in the story. "
-        f"Base the story on this image description: {text}"
+        "Use 50 to 100 words and add 1 to 3 suitable emoji naturally. "
+        f"Image description: {text}. Story:"
     )
-    result = story_pipe(prompt, max_new_tokens=140)
+    result = story_pipe(prompt, max_new_tokens=120)
     return result[0]["generated_text"]
 
 

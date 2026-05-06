@@ -14,7 +14,7 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 ## Models and Tools
 
 - Image captioning: `Salesforce/blip-image-captioning-base`
-- Story generation: `google/flan-t5-small`
+- Story generation: `pranavpsv/genre-story-generator-v2`
 - Text-to-speech: `Matthijs/mms-tts-eng`
 - UI framework: `Streamlit`
 
