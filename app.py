@@ -4,7 +4,7 @@ from transformers import pipeline
 
 
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "pranavpsv/genre-story-generator-v2"
+STORY_MODEL = "google/flan-t5-small"
 TTS_MODEL = "Matthijs/mms-tts-eng"
 DARK_WORDS = [
     "death",
@@ -28,7 +28,7 @@ def load_caption_pipeline():
 
 
 def load_story_pipeline():
-    return pipeline("text-generation", model=STORY_MODEL)
+    return pipeline("text2text-generation", model=STORY_MODEL)
 
 
 def load_tts_pipeline():
@@ -47,6 +47,20 @@ def has_dark_content(story):
         if word in story_lower:
             return True
     return False
+
+
+def has_too_much_repetition(story):
+    sentences = [
+        sentence.strip().lower()
+        for sentence in story.split(".")
+        if sentence.strip()
+    ]
+    unique_sentences = set(sentences)
+    return len(sentences) >= 4 and len(unique_sentences) <= 2
+
+
+def is_too_short(story):
+    return len(story.split()) < 50
 
 
 def finish_sentence(story):
@@ -75,10 +89,15 @@ def text_to_story(text):
         "Do not mention death, darkness, violence, kidnapping, or adult topics. "
         f"Image description: {text}. Story:"
     )
-    result = story_pipe(prompt, max_new_tokens=90, return_full_text=False)
+    result = story_pipe(
+        prompt,
+        max_new_tokens=120,
+        no_repeat_ngram_size=3,
+        repetition_penalty=1.5,
+    )
     story = finish_sentence(result[0]["generated_text"].strip())
 
-    if has_dark_content(story):
+    if has_dark_content(story) or has_too_much_repetition(story) or is_too_short(story):
         story = fallback_story(text)
 
     return story
