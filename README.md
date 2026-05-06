@@ -10,7 +10,6 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 - Turn the caption into a child-friendly 50-100 word story with a few emoji
 - Convert the story to speech with a Hugging Face TTS model
 - Play the audio in the browser
-- Download the generated story as text or WAV
 
 ## Models and Tools
 
@@ -21,11 +20,9 @@ This repository contains a Streamlit storytelling app for ISOM5240 Assignment 1.
 
 ## Why This Version Is Better
 
-- The code keeps a simple function-based structure that is easier to explain in class.
-- The app processes uploaded images in memory instead of writing temporary files to disk.
-- Story output is cleaned to reduce repeated sentences.
-- The generated story is kept within the assignment word limit.
-- Audio can be replayed and downloaded after it is generated.
+- The code follows a simple classroom-style Streamlit structure.
+- The app only uses the same core packages as the teacher's example: `streamlit`, `transformers`, `torch`, and `Pillow`.
+- The app keeps the required assignment flow: image input, caption generation, story generation, and audio output.
 
 ## Run Locally
 
