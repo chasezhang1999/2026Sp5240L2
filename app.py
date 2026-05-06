@@ -13,17 +13,14 @@ st.title("📖 AI Storytelling App for Kids")
 st.write("Upload an image or take a photo to create a short story with audio.")
 
 
-@st.cache_resource
 def load_caption_pipeline():
     return pipeline("image-to-text", model=CAPTION_MODEL)
 
 
-@st.cache_resource
 def load_story_pipeline():
     return pipeline("text-generation", model=STORY_MODEL)
 
 
-@st.cache_resource
 def load_tts_pipeline():
     return pipeline("text-to-audio", model=TTS_MODEL)
 
@@ -67,18 +64,24 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    with st.spinner("Generating the story..."):
-        scenario = image_to_text(image)
-        story = text_to_story(scenario)
-        speech_output = story_to_audio(story)
+    if st.button("Generate Story"):
+        with st.spinner("Generating the story..."):
+            scenario = image_to_text(image)
+            story = text_to_story(scenario)
+            st.session_state["scenario"] = scenario
+            st.session_state["story"] = story
 
-    st.subheader("Image Caption")
-    st.write(scenario)
+    if "scenario" in st.session_state:
+        st.subheader("Image Caption")
+        st.write(st.session_state["scenario"])
 
-    st.subheader("Generated Story ✨")
-    st.write(story)
+    if "story" in st.session_state:
+        st.subheader("Generated Story ✨")
+        st.write(st.session_state["story"])
 
-    if st.button("Play Audio"):
+    if "story" in st.session_state and st.button("Play Audio"):
+        with st.spinner("Generating audio data..."):
+            speech_output = story_to_audio(st.session_state["story"])
         audio_array = speech_output["audio"]
         sample_rate = speech_output["sampling_rate"]
         st.audio(audio_array, sample_rate=sample_rate)
