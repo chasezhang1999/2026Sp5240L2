@@ -13,14 +13,17 @@ st.title("📖 AI Storytelling App for Kids")
 st.write("Upload an image or take a photo to create a short story with audio.")
 
 
+@st.cache_resource
 def load_caption_pipeline():
     return pipeline("image-to-text", model=CAPTION_MODEL)
 
 
+@st.cache_resource
 def load_story_pipeline():
     return pipeline("text2text-generation", model=STORY_MODEL)
 
 
+@st.cache_resource
 def load_tts_pipeline():
     return pipeline("text-to-audio", model=TTS_MODEL)
 
@@ -28,68 +31,17 @@ def load_tts_pipeline():
 def image_to_text(image):
     caption_pipe = load_caption_pipeline()
     result = caption_pipe(image)
-    caption = result[0]["generated_text"]
-    return clean_caption(caption)
+    return result[0]["generated_text"]
 
 
-def clean_caption(caption):
-    caption = caption.replace(" illustration", "")
-    caption = caption.replace(" drawing", "")
-    caption = caption.replace(" cartoon", "")
-    return caption.strip()
-
-
-def expand_caption(caption):
+def text_to_story(caption):
     story_pipe = load_story_pipeline()
     prompt = (
-        f"Describe this scene in one rich sentence for a children's story: {caption}. "
-        "Mention the people, place, mood, and possible action."
-    )
-    result = story_pipe(prompt, max_new_tokens=60)
-    description = result[0]["generated_text"].strip()
-
-    if len(description.split()) < 8 or "describe this scene" in description.lower():
-        description = f"{caption} in a cheerful place with a friendly and playful mood"
-
-    return clean_caption(finish_sentence(description))
-
-
-def finish_sentence(story):
-    for mark in [".", "!", "?"]:
-        position = story.rfind(mark)
-        if position > 40:
-            return story[: position + 1].strip()
-    return story.strip() + "."
-
-
-def simple_story(text):
-    return (
-        f"One sunny day, {text} became the start of a happy adventure. "
-        "Everyone played together, shared kind words, and found something wonderful to smile about. "
-        "A small surprise made the day feel special, and the children learned that imagination can turn any moment into magic. 🌟"
-    )
-
-
-def text_to_story(text):
-    story_pipe = load_story_pipeline()
-    prompt = (
-        f"Tell a short happy children's story about this scene: {text}. "
+        f"Tell a short happy children's story about this scene: {caption}. "
         "Make it simple, kind, and imaginative."
     )
-    result = story_pipe(
-        prompt,
-        max_new_tokens=120,
-    )
-    story = finish_sentence(result[0]["generated_text"].strip())
-
-    if (
-        "use 50 to 100 words" in story.lower()
-        or "write a warm" in story.lower()
-        or len(story.split()) < 30
-    ):
-        story = simple_story(text)
-
-    return story
+    result = story_pipe(prompt, max_new_tokens=120)
+    return result[0]["generated_text"].strip()
 
 
 def story_to_audio(story):
@@ -117,17 +69,16 @@ if uploaded_file is not None:
     if st.button("Generate Story"):
         with st.spinner("Generating the story..."):
             caption = image_to_text(image)
-            scenario = expand_caption(caption)
-            story = text_to_story(scenario)
+            story = text_to_story(caption)
             speech_output = story_to_audio(story)
-            st.session_state["scenario"] = scenario
+            st.session_state["caption"] = caption
             st.session_state["story"] = story
             st.session_state["audio_array"] = speech_output["audio"]
             st.session_state["sample_rate"] = speech_output["sampling_rate"]
 
-    if "scenario" in st.session_state:
+    if "caption" in st.session_state:
         st.subheader("Image Caption")
-        st.write(st.session_state["scenario"])
+        st.write(st.session_state["caption"])
 
     if "story" in st.session_state:
         st.subheader("Generated Story ✨")
