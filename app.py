@@ -39,18 +39,34 @@ def finish_sentence(story):
     return story.strip() + "."
 
 
+def simple_story(text):
+    return (
+        f"One sunny day, {text} became the start of a happy adventure. "
+        "Everyone played together, shared kind words, and found something wonderful to smile about. "
+        "A small surprise made the day feel special, and the children learned that imagination can turn any moment into magic. 🌟"
+    )
+
+
 def text_to_story(text):
     story_pipe = load_story_pipeline()
     prompt = (
-        "Write a warm and imaginative story for children aged 3 to 10. "
-        "Use 50 to 100 words and add 1 to 3 suitable emoji naturally. "
-        f"Image description: {text}. Story:"
+        f"Tell a short happy children's story about this scene: {text}. "
+        "Make it simple, kind, and imaginative."
     )
     result = story_pipe(
         prompt,
         max_new_tokens=120,
     )
-    return finish_sentence(result[0]["generated_text"].strip())
+    story = finish_sentence(result[0]["generated_text"].strip())
+
+    if (
+        "use 50 to 100 words" in story.lower()
+        or "write a warm" in story.lower()
+        or len(story.split()) < 30
+    ):
+        story = simple_story(text)
+
+    return story
 
 
 def story_to_audio(story):
