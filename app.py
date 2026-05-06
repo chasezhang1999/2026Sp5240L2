@@ -4,7 +4,7 @@ from transformers import pipeline
 
 
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "google/flan-t5-base"
+STORY_MODEL = "google/flan-t5-large"
 TTS_MODEL = "Matthijs/mms-tts-eng"
 
 
