@@ -41,8 +41,8 @@ def text_to_story(text):
         "Use 50 to 100 words and add 1 to 3 suitable emoji naturally. "
         f"Image description: {text}. Story:"
     )
-    result = story_pipe(prompt, max_new_tokens=120)
-    return result[0]["generated_text"]
+    result = story_pipe(prompt, max_new_tokens=120, return_full_text=False)
+    return result[0]["generated_text"].strip()
 
 
 def story_to_audio(story):
