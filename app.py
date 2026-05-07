@@ -41,7 +41,7 @@ if uploaded_file is not None:
 
     # Stage 2: Text to Story (Inline, using flan-t5)
     st.text("Generating a story... ✨")
-    story_pipe = pipeline("text2text-generation", model="google/flan-t5-small")
+    story_pipe = pipeline("text-generation", model="google/flan-t5-small")
     story_prompt = (
         f"Write a short children's story based on: {scenario}. "
         "Use emojis to make it fun 🌟☀️🧸🦋🌿🌸⭐🎉🌈❤️. "
