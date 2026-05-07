@@ -1,55 +1,33 @@
 # AI Storytelling App for Kids
 
-This project is a Streamlit storytelling application for ISOM5240 Assignment 1.
+ISOM5240 Assignment — A Streamlit app that turns an image into an audio story for children aged 3–10.
 
 ## Features
 
-- Upload an image
-- Generate an image caption with a Hugging Face image model
-- Generate a 50-100 word story for children
-- Convert the story into speech
-- Reuse loaded models with Streamlit caching
-- Download the generated story as text or MP3 audio
+- Upload an image or take a photo with your camera
+- Generate an image caption using BLIP
+- Generate a ~100-word children's story using GPT-2
+- Convert the story to speech with MMS-TTS
+- Play the audio directly in the browser
 
-## Models and Tools
+## Pipeline (3 Stages)
 
-- Image captioning model: `Salesforce/blip-image-captioning-base`
-- Story generation model: `google/flan-t5-small`
-- Text-to-speech: `gTTS`
-- Web framework: `Streamlit`
+| Stage | Pipeline | Model |
+|-------|----------|-------|
+| Image to Text | `image-text-to-text` | `Salesforce/blip-image-captioning-base` |
+| Text to Story | `text-generation` | `gpt2` |
+| Story to Audio | `text-to-audio` | `Matthijs/mms-tts-eng` |
 
 ## Run Locally
 
-1. Install dependencies:
-
 ```bash
 pip install -r requirements.txt
-```
-
-2. Start the Streamlit app:
-
-```bash
 streamlit run app.py
 ```
 
-## Optimization Notes
+## Deploy to Streamlit Cloud
 
-- The app caches Hugging Face pipelines so the models are loaded only once per session.
-- Uploaded images are tracked by file content instead of filename, which prevents stale results when a different image has the same name.
-- The story generation step removes repeated sentences and keeps the final output within the assignment word limit.
-- Generated audio is cached for repeated playback and download.
-
-## Streamlit Cloud Deployment
-
-1. Upload this folder to a GitHub repository.
-2. Sign in to Streamlit Cloud.
-3. Create a new app from the GitHub repository.
-4. Set the main file path to `app.py`.
-5. Deploy and copy the public URL for submission.
-
-## Submission Checklist
-
-- `app.py`
-- `requirements.txt`
-- Other required files
-- Streamlit Cloud URL
+1. Push this repo to GitHub
+2. Go to [Streamlit Cloud](https://streamlit.io/cloud)
+3. Create a new app pointing to `app.py`
+4. Deploy
