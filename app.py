@@ -45,7 +45,7 @@ def image_to_text(image):
 def text_to_story(caption):
     """Generate a children's story (50-100 words) from the caption."""
     story_pipe = load_story_pipeline()
-    prompt = f"Once upon a time, {caption}. "
+    prompt = f"Generate a children's story (50-100 words) from the caption: {caption}. "
     result = story_pipe(
         prompt,
         max_new_tokens=120,
