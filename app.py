@@ -69,12 +69,12 @@ if uploaded_file is not None:
     )
     story_results = story_pipe(
         story_prompt,
-        max_new_tokens=25,
-        return_full_text=False,
+        max_new_tokens=150,          # 增大生成长度
+        return_full_text=False,       # 不返回 prompt
         no_repeat_ngram_size=3,
         repetition_penalty=1.2,
     )
-    story = finish_sentence(story_prompt + story_results[0]["generated_text"])
+    story = finish_sentence(story_results[0]["generated_text"])
     st.write(f"**Story:** {story}")
 
     # Stage 3: Story to Audio (Inline)
