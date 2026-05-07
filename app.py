@@ -1,231 +1,62 @@
-import hashlib
-from io import BytesIO
-from typing import Optional
-
+# Program title: Storytelling App
+# Import part
 import streamlit as st
-from gtts import gTTS
-from PIL import Image, ImageOps, UnidentifiedImageError
 from transformers import pipeline
 
 
-st.set_page_config(
-    page_title="AI Storytelling App for Kids",
-    layout="centered",
-)
+# Function part
+def img2text(url):
+    image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    text = image_to_text_model(url)[0]["generated_text"]
+    return text
 
 
-CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "google/flan-t5-small"
-MIN_WORDS = 50
-MAX_WORDS = 100
+# Main part
+st.set_page_config(page_title="Your Image to Audio Story", page_icon="🤖")
+st.header("ISOM5240: Turn Your Image to Audio Story")
 
+# Image source: upload or camera
+source = st.radio("Choose an image source", ["Upload an image 📁", "Take a photo 📷"], horizontal=True)
 
-@st.cache_resource(show_spinner=False)
-def load_caption_pipeline():
-    """Load the image captioning pipeline once and reuse it."""
-    return pipeline("image-text-to-text", model=CAPTION_MODEL)
+uploaded_file = None
+if source == "Upload an image 📁":
+    uploaded_file = st.file_uploader("Select an Image...", type=["jpg", "jpeg", "png"])
+else:
+    uploaded_file = st.camera_input("Take a picture with your camera")
 
+if uploaded_file is not None:
+    # Save file locally
+    bytes_data = uploaded_file.getvalue()
+    with open(uploaded_file.name, "wb") as file:
+        file.write(bytes_data)
 
-@st.cache_resource(show_spinner=False)
-def load_story_pipeline():
-    """Load the story generation pipeline once and reuse it."""
-    return pipeline("text-generation", model=STORY_MODEL)
+    st.image(uploaded_file, caption="Uploaded Image 🖼️", use_column_width=True)
 
+    # Stage 1: Image to Text (Using the function)
+    st.text("Processing img2text... 🔍")
+    scenario = img2text(uploaded_file.name)
+    st.write(f"**Scenario:** {scenario}")
 
-def generate_caption(image: Image.Image) -> str:
-    """Generate a short caption based on the uploaded image."""
-    caption_pipeline = load_caption_pipeline()
-    result = caption_pipeline(image)
-    caption = result[0]["generated_text"].strip()
-    return caption.capitalize()
-
-
-def trim_story_to_limit(story: str, max_words: int = MAX_WORDS) -> str:
-    """Keep the story within the assignment word limit."""
-    words = story.split()
-    if len(words) <= max_words:
-        return story.strip()
-    return " ".join(words[:max_words]).strip(" ,.;:") + "."
-
-
-def expand_short_story(
-    story: str,
-    caption: str,
-    min_words: int = MIN_WORDS,
-) -> str:
-    """Pad the story gently if the model response is too short."""
-    words = story.split()
-    if len(words) >= min_words:
-        return story.strip()
-
-    extra_sentences = [
-        f"In this little world, {caption.lower()} made everyone feel curious and happy.",
-        "Soon, a gentle surprise turned the moment into a fun adventure full of smiles.",
-        "When the day ended, everyone learned that kindness and imagination make every story brighter.",
-    ]
-
-    updated_story = story.strip()
-    for sentence in extra_sentences:
-        if len(updated_story.split()) >= min_words:
-            break
-        updated_story = f"{updated_story} {sentence}".strip()
-
-    return updated_story
-
-
-def remove_repeated_sentences(story: str) -> str:
-    """Drop duplicate sentences to reduce repetitive model output."""
-    raw_sentences = [
-        sentence.strip()
-        for sentence in story.replace("!", ".").replace("?", ".").split(".")
-        if sentence.strip()
-    ]
-
-    unique_sentences = []
-    seen = set()
-
-    for sentence in raw_sentences:
-        normalized = " ".join(sentence.lower().split())
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        unique_sentences.append(sentence)
-
-    if not unique_sentences:
-        return story.strip()
-
-    return ". ".join(unique_sentences).strip() + "."
-
-
-def generate_story(caption: str) -> str:
-    """Expand the caption into a child-friendly story."""
-    story_pipeline = load_story_pipeline()
-    prompt = (
-        "Write a warm and imaginative story for children aged 3 to 10. "
-        f"Use only {MIN_WORDS} to {MAX_WORDS} words. "
-        "Write 4 to 6 short sentences in simple English. "
-        "Do not repeat the same idea or sentence. "
-        f"Base the story on this image description: {caption}"
+    # Stage 2: Text to Story (Inline, using GPT-2)
+    st.text("Generating a story... ✨")
+    story_pipe = pipeline("text-generation", model="gpt2")
+    story_prompt = (
+        f"Once upon a time 🌟, {scenario}. "
+        "The children laughed in the sunshine ☀️, shared their toys 🧸, "
+        "and followed a bright little butterfly 🦋 across the green grass 🌿. "
+        "It led them to a hidden flower 🌸, so they made a wish together ⭐. "
+        "Everyone went home smiling after a kind and happy adventure 🎉🌈❤️. "
     )
+    story_results = story_pipe(story_prompt, max_new_tokens=50)[0]["generated_text"]
+    st.write(f"**Story:** {story_results}")
 
-    result = story_pipeline(
-        prompt,
-        max_new_tokens=140,
-        do_sample=True,
-        temperature=0.8,
-        top_p=0.92,
-        no_repeat_ngram_size=3,
-    )
-    story = result[0]["generated_text"].strip()
-    story = remove_repeated_sentences(story)
-    story = expand_short_story(story, caption)
-    story = trim_story_to_limit(story)
-    return story
+    # Stage 3: Story to Audio (Inline)
+    st.text("Generating audio data... 🔊")
+    audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
+    audio_data = audio_pipe(story_results)
 
-
-@st.cache_data(show_spinner=False)
-def text_to_speech(text: str, language: str = "en") -> BytesIO:
-    """Convert the generated story to MP3 audio in memory."""
-    audio_buffer = BytesIO()
-    tts = gTTS(text=text, lang=language, slow=False)
-    tts.write_to_fp(audio_buffer)
-    audio_buffer.seek(0)
-    return audio_buffer
-
-
-def build_story(image: Image.Image) -> tuple[str, str, BytesIO]:
-    """Run the full image -> caption -> story -> audio workflow."""
-    caption = generate_caption(image)
-    story = generate_story(caption)
-    audio_file = text_to_speech(story)
-    return caption, story, audio_file
-
-
-def get_upload_signature(file_bytes: bytes) -> str:
-    """Create a stable signature for the uploaded image content."""
-    return hashlib.sha1(file_bytes).hexdigest()
-
-
-def reset_outputs_on_new_upload(upload_signature: Optional[str]) -> None:
-    """Clear old results when the user uploads a different image."""
-    previous_signature = st.session_state.get("last_upload_signature")
-    if upload_signature and upload_signature != previous_signature:
-        st.session_state.pop("caption", None)
-        st.session_state.pop("story", None)
-        st.session_state.pop("audio_bytes", None)
-        st.session_state["last_upload_signature"] = upload_signature
-
-
-def load_uploaded_image(uploaded_file) -> tuple[Image.Image, bytes]:
-    """Read the uploaded file once and convert it into a display-ready image."""
-    file_bytes = uploaded_file.getvalue()
-    image = Image.open(BytesIO(file_bytes))
-    image = ImageOps.exif_transpose(image).convert("RGB")
-    return image, file_bytes
-
-
-def main():
-    st.title("AI Storytelling App for Kids")
-    st.write(
-        "Upload a picture, and the app will create a short story and read it aloud."
-    )
-    st.caption(
-        "The first run may take longer because the Hugging Face models need to load."
-    )
-
-    uploaded_file = st.file_uploader(
-        "Upload an image",
-        type=["png", "jpg", "jpeg"],
-    )
-
-    if uploaded_file is None:
-        st.info("Please upload an image to begin.")
-        return
-
-    try:
-        image, file_bytes = load_uploaded_image(uploaded_file)
-    except UnidentifiedImageError:
-        st.error("The uploaded file is not a valid image. Please try a PNG or JPG file.")
-        return
-
-    reset_outputs_on_new_upload(get_upload_signature(file_bytes))
-
-    st.image(image, caption="Uploaded image", use_container_width=True)
-
-    if st.button("Generate Story", type="primary"):
-        try:
-            with st.spinner("Creating a story and audio for you..."):
-                caption, story, audio_file = build_story(image)
-                st.session_state["caption"] = caption
-                st.session_state["story"] = story
-                st.session_state["audio_bytes"] = audio_file.getvalue()
-        except Exception as error:
-            st.error(f"An error occurred while generating the story: {error}")
-
-    if "caption" in st.session_state:
-        st.subheader("Image Caption")
-        st.write(st.session_state["caption"])
-
-    if "story" in st.session_state:
-        st.subheader("Generated Story")
-        st.write(st.session_state["story"])
-        st.download_button(
-            "Download Story as Text",
-            data=st.session_state["story"],
-            file_name="story.txt",
-            mime="text/plain",
-        )
-
-    if "audio_bytes" in st.session_state:
-        st.subheader("Story Audio")
-        st.audio(st.session_state["audio_bytes"], format="audio/mp3")
-        st.download_button(
-            "Download Story Audio",
-            data=st.session_state["audio_bytes"],
-            file_name="story.mp3",
-            mime="audio/mpeg",
-        )
-
-
-if __name__ == "__main__":
-    main()
+    # Play button
+    if st.button("Play Audio ▶️"):
+        audio_array = audio_data["audio"]
+        sample_rate = audio_data["sampling_rate"]
+        st.audio(audio_array, sample_rate=sample_rate)
