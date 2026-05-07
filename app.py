@@ -56,24 +56,25 @@ if uploaded_file is not None:
     # Stage 1: Image to Text (Using the function)
     st.text("Processing img2text...")
     scenario = img2text(uploaded_file.name)
-    rich_scenario = f"{scenario} in a cheerful place with a friendly and playful mood"
-    st.write(f"**Scenario:** {finish_sentence(rich_scenario)}")
+    st.write(f"**Scenario:** {finish_sentence(scenario)}")
 
     # Stage 2: Text to Story (Inline)
     st.text("Generating a story...")
     story_pipe = pipeline("text-generation", model="pranavpsv/genre-story-generator-v2")
     story_prompt = (
-        "Write only a short, happy story for children. "
-        "No movie names. No actor names. No scary events. "
-        "The story should be friendly, simple, and imaginative. "
-        f"Scene: {rich_scenario}. Story:"
+        f"Once upon a time, {scenario}. "
+        "The children laughed in the sunshine, shared their toys, and followed a bright little butterfly across the grass. "
+        "It led them to a hidden flower, so they made a wish together. "
+        "Everyone went home smiling after a kind and happy adventure. "
     )
     story_results = story_pipe(
         story_prompt,
-        max_new_tokens=100,
+        max_new_tokens=25,
         return_full_text=False,
+        no_repeat_ngram_size=3,
+        repetition_penalty=1.2,
     )
-    story = finish_sentence(story_results[0]["generated_text"])
+    story = finish_sentence(story_prompt + story_results[0]["generated_text"])
     st.write(f"**Story:** {story}")
 
     # Stage 3: Story to Audio (Inline)
