@@ -9,7 +9,7 @@ from transformers import pipeline
 def img2text(image_path):
     image_to_text_model = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
     image = Image.open(image_path)
-    text = image_to_text_model(image)[0]["generated_text"]
+    text = image_to_text_model(image, text="a picture of")[0]["generated_text"]
     return text
 
 
