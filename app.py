@@ -6,7 +6,7 @@ from transformers import pipeline
 
 # ------------------ Parameters ------------------
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "gpt2"
+STORY_MODEL = "google/flan-t5-small"
 AUDIO_MODEL = "Matthijs/mms-tts-eng"
 
 
@@ -55,22 +55,19 @@ if uploaded_file is not None:
 
     # Stage 2: Text to Story (~100 words for kids aged 3-10)
     st.text("Generating a story...")
-    story_pipe = pipeline("text-generation", model=STORY_MODEL)
+    story_pipe = pipeline(model=STORY_MODEL)
     story_prompt = (
-        f"Once upon a time in a happy little village, {scenario}. "
-        "The sun was shining and the birds were singing sweet songs. "
-        "All the children gathered in the meadow to play their favorite games. "
-        "They held hands and danced in a big circle, laughing with delight. "
-        "A friendly little bunny hopped over and joined the fun. "
+        f"Write a warm and happy children's story for kids aged 3 to 10. "
+        f"The story should be about 100 words and based on: {scenario}. "
+        f"Use simple English and short sentences. "
     )
     story_raw = story_pipe(
         story_prompt,
-        max_new_tokens=100,
+        max_new_tokens=140,
         do_sample=True,
-        temperature=0.65,
-        top_p=0.8,
+        temperature=0.85,
+        top_p=0.92,
         no_repeat_ngram_size=3,
-        return_full_text=False,
     )[0]["generated_text"]
     story = finish_sentence(story_raw)
     st.write(f"**Story:** {story}")
