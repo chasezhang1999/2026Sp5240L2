@@ -45,35 +45,35 @@ if uploaded_file is not None:
     st.image(uploaded_file, caption="Uploaded Image 🖼️", use_column_width=True)
 
     # Stage 1: Image to Text
-    st.text("Processing img2text...")
-    scenario = img2text(uploaded_file.name)
+    with st.spinner("Processing img2text..."):
+        scenario = img2text(uploaded_file.name)
     st.write(f"**Scenario:** {scenario}")
 
     # Stage 2: Text to Story
-    st.text("Generating a story...")
-    story_pipe = pipeline("text-generation", model=STORY_MODEL)
-    story_prompt = (
-        f"Once upon a time, {scenario}. "
-        "The sun was shining and a gentle breeze blew through the trees. "
-        "The children ran across the green meadow, chasing butterflies and picking flowers. "
-        "Near the old oak tree, they found a tiny door hidden in the roots. "
-    )
-    story_raw = story_pipe(
-        story_prompt,
-        max_new_tokens=100,
-        do_sample=True,
-        temperature=0.75,
-        top_p=0.85,
-        no_repeat_ngram_size=3,
-        return_full_text=False,
-    )[0]["generated_text"]
-    story = finish_sentence(story_raw)
+    with st.spinner("Generating a story..."):
+        story_pipe = pipeline("text-generation", model=STORY_MODEL)
+        story_prompt = (
+            f"Once upon a time, {scenario}. "
+            "The sun was shining and a gentle breeze blew through the trees. "
+            "The children ran across the green meadow, chasing butterflies and picking flowers. "
+            "Near the old oak tree, they found a tiny door hidden in the roots. "
+        )
+        story_raw = story_pipe(
+            story_prompt,
+            max_new_tokens=100,
+            do_sample=True,
+            temperature=0.75,
+            top_p=0.85,
+            no_repeat_ngram_size=3,
+            return_full_text=False,
+        )[0]["generated_text"]
+        story = finish_sentence(story_raw)
     st.write(f"**Story:** {story}")
 
     # Stage 3: Story to Audio
-    st.text("Generating audio data...")
-    audio_pipe = pipeline("text-to-audio", model=AUDIO_MODEL)
-    audio_data = audio_pipe(story)
+    with st.spinner("Generating audio data..."):
+        audio_pipe = pipeline("text-to-audio", model=AUDIO_MODEL)
+        audio_data = audio_pipe(story)
 
     if st.button("Play Audio ▶️"):
         audio_array = audio_data["audio"]
