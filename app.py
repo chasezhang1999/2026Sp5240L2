@@ -4,7 +4,7 @@ from transformers import pipeline
 
 
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "google/flan-t5-large"
+STORY_MODEL = "gpt2"
 TTS_MODEL = "Matthijs/mms-tts-eng"
 
 
@@ -15,20 +15,24 @@ st.write("Upload an image or take a photo to create a short story with audio.")
 
 @st.cache_resource
 def load_caption_pipeline():
+    """Load the image captioning model."""
     return pipeline("image-to-text", model=CAPTION_MODEL)
 
 
 @st.cache_resource
 def load_story_pipeline():
-    return pipeline("text2text-generation", model=STORY_MODEL)
+    """Load the story generation model."""
+    return pipeline("text-generation", model=STORY_MODEL)
 
 
 @st.cache_resource
 def load_tts_pipeline():
+    """Load the text-to-speech model."""
     return pipeline("text-to-audio", model=TTS_MODEL)
 
 
 def image_to_text(image):
+    """Generate a caption from the uploaded image."""
     caption_pipe = load_caption_pipeline()
     result = caption_pipe(image)
     caption = result[0]["generated_text"]
@@ -39,20 +43,34 @@ def image_to_text(image):
 
 
 def text_to_story(caption):
+    """Generate a children's story (50-100 words) from the caption."""
     story_pipe = load_story_pipeline()
-    prompt = (
-        f"Tell a short happy children's story about this scene: {caption}. "
-        "Make it simple, kind, and imaginative."
+    prompt = f"Once upon a time, {caption}. "
+    result = story_pipe(
+        prompt,
+        max_new_tokens=120,
+        num_return_sequences=1,
+        temperature=0.8,
+        top_p=0.9,
+        do_sample=True,
     )
-    result = story_pipe(prompt, max_new_tokens=120)
-    return result[0]["generated_text"].strip()
+    story = result[0]["generated_text"].strip()
+    # Trim to the last complete sentence
+    for mark in [".", "!", "?"]:
+        pos = story.rfind(mark)
+        if pos > 30:
+            story = story[: pos + 1]
+            break
+    return story
 
 
 def story_to_audio(story):
+    """Convert the generated story text to audio."""
     tts_pipe = load_tts_pipeline()
     return tts_pipe(story)
 
 
+# --- UI: Image source selection ---
 source = st.radio(
     "Choose an image source",
     ["Upload an image", "Take a photo"],
@@ -64,7 +82,6 @@ if source == "Upload an image":
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 else:
     uploaded_file = st.camera_input("Take a picture with your camera")
-
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
