@@ -6,7 +6,7 @@ from transformers import pipeline
 
 # ------------------ Parameters ------------------
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "HuggingFaceTB/SmolLM2-135M-Instruct"
+STORY_MODEL = "gpt2"
 AUDIO_MODEL = "Matthijs/mms-tts-eng"
 
 
@@ -57,17 +57,18 @@ if uploaded_file is not None:
     st.text("Generating a story...")
     story_pipe = pipeline("text-generation", model=STORY_MODEL)
     story_prompt = (
-        f"Write a warm and happy children's story for kids aged 3 to 10. "
-        f"The story should be about 100 words and based on: {scenario}. "
-        f"Use simple English and short sentences. "
+        f"Once upon a time, {scenario}. "
+        "The children were so happy playing together. "
+        "They laughed and smiled all day long. "
     )
     story_raw = story_pipe(
         story_prompt,
-        max_new_tokens=140,
+        max_new_tokens=100,
         do_sample=True,
-        temperature=0.85,
-        top_p=0.92,
+        temperature=0.5,
+        top_p=0.75,
         no_repeat_ngram_size=3,
+        return_full_text=False,
     )[0]["generated_text"]
     story = finish_sentence(story_raw)
     st.write(f"**Story:** {story}")
