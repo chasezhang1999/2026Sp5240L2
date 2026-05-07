@@ -2,7 +2,7 @@
 # Import part
 import streamlit as st
 from PIL import Image
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import pipeline
 
 
 # Function part
@@ -39,30 +39,28 @@ if uploaded_file is not None:
     scenario = img2text(uploaded_file.name)
     st.write(f"**Scenario:** {scenario}")
 
-    # Stage 2: Text to Story (Inline, using flan-t5)
-    st.text("Generating a story... ✨")
-    story_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
-    story_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
+    # Stage 2: Text to Story
+    st.text("Generating a story...")
+    story_pipe = pipeline("text-generation", model="gpt2")
     story_prompt = (
-        f"Write a short children's story based on: {scenario}. "
-        "Use emojis to make it fun 🌟☀️🧸🦋🌿🌸⭐🎉🌈❤️. "
-        "Keep the story warm and happy."
+        f"Once upon a time, {scenario}. "
+        "The children were very happy and excited. "
+        "They played together and discovered something wonderful. "
     )
-    inputs = story_tokenizer(story_prompt, return_tensors="pt")
-    outputs = story_model.generate(
-        **inputs,
-        max_new_tokens=150,
+    story_results = story_pipe(
+        story_prompt,
+        max_new_tokens=200,
         do_sample=True,
-        temperature=0.85,
-        top_p=0.92,
-    )
-    story = story_tokenizer.decode(outputs[0], skip_special_tokens=True)
-    st.write(f"**Story:** {story}")
+        temperature=0.9,
+        top_p=0.95,
+        no_repeat_ngram_size=3,
+    )[0]["generated_text"]
+    st.write(f"**Story:** {story_results}")
 
     # Stage 3: Story to Audio (Inline)
     st.text("Generating audio data... 🔊")
     audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
-    audio_data = audio_pipe(story)
+    audio_data = audio_pipe(story_results)
 
     # Play button
     if st.button("Play Audio ▶️"):
