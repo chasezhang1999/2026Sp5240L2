@@ -58,15 +58,16 @@ if uploaded_file is not None:
     story_pipe = pipeline("text-generation", model=STORY_MODEL)
     story_prompt = (
         f"Once upon a time, {scenario}. "
-        "The children were so happy playing together. "
-        "They laughed and smiled all day long. "
+        "The sun was shining and a gentle breeze blew through the trees. "
+        "The children ran across the green meadow, chasing butterflies and picking flowers. "
+        "Near the old oak tree, they found a tiny door hidden in the roots. "
     )
     story_raw = story_pipe(
         story_prompt,
         max_new_tokens=100,
         do_sample=True,
-        temperature=0.5,
-        top_p=0.75,
+        temperature=0.75,
+        top_p=0.85,
         no_repeat_ngram_size=3,
         return_full_text=False,
     )[0]["generated_text"]
