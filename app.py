@@ -2,7 +2,7 @@
 # Import part
 import streamlit as st
 from PIL import Image
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
 
 # Function part
@@ -41,25 +41,28 @@ if uploaded_file is not None:
 
     # Stage 2: Text to Story (Inline, using flan-t5)
     st.text("Generating a story... ✨")
-    story_pipe = pipeline("text-generation", model="google/flan-t5-small")
+    story_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
+    story_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
     story_prompt = (
         f"Write a short children's story based on: {scenario}. "
         "Use emojis to make it fun 🌟☀️🧸🦋🌿🌸⭐🎉🌈❤️. "
         "Keep the story warm and happy."
     )
-    story_results = story_pipe(
-        story_prompt,
+    inputs = story_tokenizer(story_prompt, return_tensors="pt")
+    outputs = story_model.generate(
+        **inputs,
         max_new_tokens=150,
         do_sample=True,
         temperature=0.85,
         top_p=0.92,
-    )[0]["generated_text"]
-    st.write(f"**Story:** {story_results}")
+    )
+    story = story_tokenizer.decode(outputs[0], skip_special_tokens=True)
+    st.write(f"**Story:** {story}")
 
     # Stage 3: Story to Audio (Inline)
     st.text("Generating audio data... 🔊")
     audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
-    audio_data = audio_pipe(story_results)
+    audio_data = audio_pipe(story)
 
     # Play button
     if st.button("Play Audio ▶️"):
