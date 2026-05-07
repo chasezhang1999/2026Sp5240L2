@@ -4,13 +4,12 @@ import streamlit as st
 from PIL import Image
 from transformers import pipeline
 
-# ------------------ Parameters ------------------
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
 STORY_MODEL = "gpt2"
 AUDIO_MODEL = "Matthijs/mms-tts-eng"
 
 
-# ------------------ Functions ------------------
+# Function part
 def img2text(image_path):
     image_to_text_model = pipeline("image-text-to-text", model=CAPTION_MODEL)
     image = Image.open(image_path)
@@ -19,7 +18,6 @@ def img2text(image_path):
 
 
 def finish_sentence(text):
-    """Trim generated text to the last complete sentence."""
     for mark in [".", "!", "?"]:
         pos = text.rfind(mark)
         if pos > 30:
@@ -27,11 +25,10 @@ def finish_sentence(text):
     return text.strip() + "."
 
 
-# ------------------ Main ------------------
+# Main part
 st.set_page_config(page_title="Your Image to Audio Story", page_icon="🤖")
 st.header("ISOM5240: Turn Your Image to Audio Story")
 
-# Image source: upload or camera
 source = st.radio("Choose an image source", ["Upload an image 📁", "Take a photo 📷"], horizontal=True)
 
 uploaded_file = None
@@ -41,7 +38,6 @@ else:
     uploaded_file = st.camera_input("Take a picture with your camera")
 
 if uploaded_file is not None:
-    # Save file locally
     bytes_data = uploaded_file.getvalue()
     with open(uploaded_file.name, "wb") as file:
         file.write(bytes_data)
@@ -53,7 +49,7 @@ if uploaded_file is not None:
     scenario = img2text(uploaded_file.name)
     st.write(f"**Scenario:** {scenario}")
 
-    # Stage 2: Text to Story (~100 words for kids aged 3-10)
+    # Stage 2: Text to Story
     st.text("Generating a story...")
     story_pipe = pipeline("text-generation", model=STORY_MODEL)
     story_prompt = (
@@ -79,7 +75,6 @@ if uploaded_file is not None:
     audio_pipe = pipeline("text-to-audio", model=AUDIO_MODEL)
     audio_data = audio_pipe(story)
 
-    # Play button
     if st.button("Play Audio ▶️"):
         audio_array = audio_data["audio"]
         sample_rate = audio_data["sampling_rate"]
