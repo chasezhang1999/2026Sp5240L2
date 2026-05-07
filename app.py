@@ -40,18 +40,9 @@ def clean_caption(caption):
 
 
 def expand_caption(caption):
-    story_pipe = load_story_pipeline()
-    prompt = (
-        f"Describe this scene in one rich sentence for a children's story: {caption}. "
-        "Mention the people, place, mood, and possible action."
+    return finish_sentence(
+        f"{caption} in a cheerful place with a friendly and playful mood"
     )
-    result = story_pipe(prompt, max_new_tokens=60)
-    description = result[0]["generated_text"].strip()
-
-    if len(description.split()) < 8 or "describe this scene" in description.lower():
-        description = f"{caption} in a cheerful place with a friendly and playful mood"
-
-    return clean_caption(finish_sentence(description))
 
 
 def finish_sentence(story):
@@ -62,34 +53,19 @@ def finish_sentence(story):
     return story.strip() + "."
 
 
-def simple_story(text):
-    return (
-        f"One sunny day, {text} became the start of a happy adventure. "
-        "Everyone played together, shared kind words, and found something wonderful to smile about. "
-        "A small surprise made the day feel special, and the children learned that imagination can turn any moment into magic. 🌟"
-    )
-
-
 def text_to_story(text):
     story_pipe = load_story_pipeline()
     prompt = (
-        f"Tell a short happy children's story about this scene: {text}. "
-        "Make it simple, kind, and imaginative."
+        "Create a simple children's bedtime story. "
+        f"The scene is: {text}. "
+        "The story should have a beginning, a small happy surprise, and a kind ending. "
+        "Use friendly words for young children."
     )
     result = story_pipe(
         prompt,
         max_new_tokens=120,
     )
-    story = finish_sentence(result[0]["generated_text"].strip())
-
-    if (
-        "use 50 to 100 words" in story.lower()
-        or "write a warm" in story.lower()
-        or len(story.split()) < 30
-    ):
-        story = simple_story(text)
-
-    return story
+    return finish_sentence(result[0]["generated_text"].strip())
 
 
 def story_to_audio(story):
