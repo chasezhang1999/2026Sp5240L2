@@ -39,15 +39,13 @@ if uploaded_file is not None:
     scenario = img2text(uploaded_file.name)
     st.write(f"**Scenario:** {scenario}")
 
-    # Stage 2: Text to Story (Inline, using GPT-2)
+    # Stage 2: Text to Story (Inline, using flan-t5)
     st.text("Generating a story... ✨")
-    story_pipe = pipeline("text-generation", model="gpt2")
+    story_pipe = pipeline("text2text-generation", model="google/flan-t5-small")
     story_prompt = (
-        f"Once upon a time 🌟, {scenario}. "
-        "The children laughed in the sunshine ☀️, shared their toys 🧸, "
-        "and followed a bright little butterfly 🦋 across the green grass 🌿. "
-        "It led them to a hidden flower 🌸, so they made a wish together ⭐. "
-        "Everyone went home smiling after a kind and happy adventure 🎉🌈❤️. "
+        f"Write a short children's story based on: {scenario}. "
+        "Use emojis to make it fun 🌟☀️🧸🦋🌿🌸⭐🎉🌈❤️. "
+        "Keep the story warm and happy."
     )
     story_results = story_pipe(
         story_prompt,
@@ -55,7 +53,6 @@ if uploaded_file is not None:
         do_sample=True,
         temperature=0.85,
         top_p=0.92,
-        no_repeat_ngram_size=3,
     )[0]["generated_text"]
     st.write(f"**Story:** {story_results}")
 
