@@ -49,7 +49,14 @@ if uploaded_file is not None:
         "It led them to a hidden flower 🌸, so they made a wish together ⭐. "
         "Everyone went home smiling after a kind and happy adventure 🎉🌈❤️. "
     )
-    story_results = story_pipe(story_prompt, max_new_tokens=50)[0]["generated_text"]
+    story_results = story_pipe(
+        story_prompt,
+        max_new_tokens=150,
+        do_sample=True,
+        temperature=0.85,
+        top_p=0.92,
+        no_repeat_ngram_size=3,
+    )[0]["generated_text"]
     st.write(f"**Story:** {story_results}")
 
     # Stage 3: Story to Audio (Inline)
