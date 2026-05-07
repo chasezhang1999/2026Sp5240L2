@@ -1,13 +1,15 @@
 # Program title: Storytelling App
 # Import part
 import streamlit as st
+from PIL import Image
 from transformers import pipeline
 
 
 # Function part
-def img2text(url):
-    image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    text = image_to_text_model(url)[0]["generated_text"]
+def img2text(image_path):
+    image_to_text_model = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
+    image = Image.open(image_path)
+    text = image_to_text_model(image)[0]["generated_text"]
     return text
 
 
