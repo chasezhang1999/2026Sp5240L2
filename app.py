@@ -57,10 +57,10 @@ if uploaded_file is not None:
     st.text("Generating a story...")
     story_pipe = pipeline("text-generation", model=STORY_MODEL)
     story_prompt = (
-        f"Once upon a time, {scenario}. "
-        "The children were very happy and excited. "
-        "They played together and discovered something wonderful. "
-        "The sun was shining bright and the birds were singing. "
+        f"Write a children's story for kids aged 3 to 10. "
+        f"Make it warm, happy and full of wonder. "
+        f"The story is about: {scenario}. "
+        f"Once upon a time, "
     )
     story_raw = story_pipe(
         story_prompt,
