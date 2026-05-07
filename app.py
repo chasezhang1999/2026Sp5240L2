@@ -36,19 +36,16 @@ def image_to_text(image):
     caption_pipe = load_caption_pipeline()
     result = caption_pipe(image)
     caption = result[0]["generated_text"]
-    # Remove words that describe the image format rather than the scene
-    for word in ["illustration", "drawing", "cartoon", "painting", "picture of"]:
-        caption = caption.replace(word, "")
     return caption.strip()
 
 
 def text_to_story(caption):
     """Generate a children's story (50-100 words) from the caption."""
     story_pipe = load_story_pipeline()
-    prompt = f"Generate a children's story (50-100 words) from the caption: {caption}. "
+    prompt = f"Generate a story for kids (50-100 words) from the caption: {caption}. Story:"
     result = story_pipe(
         prompt,
-        max_new_tokens=120,
+        max_new_tokens=150,
         num_return_sequences=1,
         temperature=0.8,
         top_p=0.9,
