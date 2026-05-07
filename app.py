@@ -23,13 +23,13 @@ MAX_WORDS = 100
 @st.cache_resource(show_spinner=False)
 def load_caption_pipeline():
     """Load the image captioning pipeline once and reuse it."""
-    return pipeline("image-to-text", model=CAPTION_MODEL)
+    return pipeline("image-text-to-text", model=CAPTION_MODEL)
 
 
 @st.cache_resource(show_spinner=False)
 def load_story_pipeline():
     """Load the story generation pipeline once and reuse it."""
-    return pipeline("text2text-generation", model=STORY_MODEL)
+    return pipeline("text-generation", model=STORY_MODEL)
 
 
 def generate_caption(image: Image.Image) -> str:
