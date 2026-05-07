@@ -4,16 +4,30 @@ import streamlit as st
 from PIL import Image
 from transformers import pipeline
 
+# ------------------ Parameters ------------------
+CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
+STORY_MODEL = "gpt2"
+AUDIO_MODEL = "Matthijs/mms-tts-eng"
 
-# Function part
+
+# ------------------ Functions ------------------
 def img2text(image_path):
-    image_to_text_model = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
+    image_to_text_model = pipeline("image-text-to-text", model=CAPTION_MODEL)
     image = Image.open(image_path)
     text = image_to_text_model(image, text="a picture of")[0]["generated_text"]
     return text
 
 
-# Main part
+def finish_sentence(text):
+    """Trim generated text to the last complete sentence."""
+    for mark in [".", "!", "?"]:
+        pos = text.rfind(mark)
+        if pos > 30:
+            return text[: pos + 1].strip()
+    return text.strip() + "."
+
+
+# ------------------ Main ------------------
 st.set_page_config(page_title="Your Image to Audio Story", page_icon="🤖")
 st.header("ISOM5240: Turn Your Image to Audio Story")
 
@@ -34,33 +48,35 @@ if uploaded_file is not None:
 
     st.image(uploaded_file, caption="Uploaded Image 🖼️", use_column_width=True)
 
-    # Stage 1: Image to Text (Using the function)
-    st.text("Processing img2text... 🔍")
+    # Stage 1: Image to Text
+    st.text("Processing img2text...")
     scenario = img2text(uploaded_file.name)
     st.write(f"**Scenario:** {scenario}")
 
     # Stage 2: Text to Story
     st.text("Generating a story...")
-    story_pipe = pipeline("text-generation", model="gpt2")
+    story_pipe = pipeline("text-generation", model=STORY_MODEL)
     story_prompt = (
         f"Once upon a time, {scenario}. "
         "The children were very happy and excited. "
         "They played together and discovered something wonderful. "
     )
-    story_results = story_pipe(
+    story_raw = story_pipe(
         story_prompt,
         max_new_tokens=200,
         do_sample=True,
         temperature=0.9,
         top_p=0.95,
         no_repeat_ngram_size=3,
+        return_full_text=False,
     )[0]["generated_text"]
-    st.write(f"**Story:** {story_results}")
+    story = finish_sentence(story_raw)
+    st.write(f"**Story:** {story}")
 
-    # Stage 3: Story to Audio (Inline)
-    st.text("Generating audio data... 🔊")
-    audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
-    audio_data = audio_pipe(story_results)
+    # Stage 3: Story to Audio
+    st.text("Generating audio data...")
+    audio_pipe = pipeline("text-to-audio", model=AUDIO_MODEL)
+    audio_data = audio_pipe(story)
 
     # Play button
     if st.button("Play Audio ▶️"):
