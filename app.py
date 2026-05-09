@@ -4,46 +4,72 @@ import streamlit as st
 from PIL import Image
 from transformers import pipeline
 
+# ------------------ Parameters ------------------
 CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
-STORY_MODEL = "gpt2"
+STORY_MODEL = "roneneldan/TinyStories-33M"
 AUDIO_MODEL = "Matthijs/mms-tts-eng"
 
 
-# Function part
+# ------------------ Functions ------------------
 def img2text(image_path):
     image_to_text_model = pipeline("image-text-to-text", model=CAPTION_MODEL)
     image = Image.open(image_path)
     text = image_to_text_model(image, text="a picture of")[0]["generated_text"]
+    # Remove the prompt prefix from the caption
+    prefix = "a picture of"
+    if text.lower().startswith(prefix):
+        text = text[len(prefix):].strip(", ")
     return text
-
 
 def text2story(scenario):
     story_pipe = pipeline("text-generation", model=STORY_MODEL)
-    story_prompt = (
-        f"Once upon a time, {scenario}. "
-        "The sun was shining and a gentle breeze blew through the trees. "
-        "The children ran across the green meadow, chasing butterflies and picking flowers. "
-        "Near the old oak tree, they found a tiny door hidden in the roots. "
+
+    # 1
+    part1_prompt = (
+        f"A story for little kids.\n"
+        f"Once upon a time, there was {scenario}. "
     )
-    story_raw = story_pipe(
-        story_prompt,
+    part1_raw = story_pipe(
+        part1_prompt,
         max_new_tokens=100,
         do_sample=True,
-        temperature=0.75,
-        top_p=0.85,
-        no_repeat_ngram_size=3,
+        temperature=0.9,
+        top_p=0.95,
         return_full_text=False,
     )[0]["generated_text"]
-    return finish_sentence(story_raw)
+    part1 = finish_sentence(part1_raw)
 
+    # 2
+    part2_raw = story_pipe(
+        part1 + " One day, ",
+        max_new_tokens=100,
+        do_sample=True,
+        temperature=0.9,
+        top_p=0.95,
+        return_full_text=False,
+    )[0]["generated_text"]
+    part2 = finish_sentence(part2_raw)
+
+    # 3
+    part3_raw = story_pipe(
+        part2 + " In the end, ",
+        max_new_tokens=100,
+        do_sample=True,
+        temperature=0.9,
+        top_p=0.95,
+        return_full_text=False,
+    )[0]["generated_text"]
+    part3 = finish_sentence(part3_raw)
+
+    return f"{part1} {part2} {part3}"
 
 def text2audio(story_text):
     audio_pipe = pipeline("text-to-audio", model=AUDIO_MODEL)
-    audio_data = audio_pipe(story_text)
-    return audio_data
+    return audio_pipe(story_text)
 
 
 def finish_sentence(text):
+    """Trim generated text to the last complete sentence."""
     for mark in [".", "!", "?"]:
         pos = text.rfind(mark)
         if pos > 30:
@@ -51,7 +77,7 @@ def finish_sentence(text):
     return text.strip() + "."
 
 
-# Main part
+# ------------------ Main ------------------
 st.set_page_config(page_title="Your Image to Audio Story", page_icon="🤖")
 st.header("ISOM5240: Turn Your Image to Audio Story")
 
@@ -63,6 +89,11 @@ if source == "Upload an image 📁":
 else:
     uploaded_file = st.camera_input("Take a picture with your camera")
 
+# Initialize session state
+for key in ["scenario", "story", "audio_data", "last_file_name"]:
+    if key not in st.session_state:
+        st.session_state[key] = None
+
 if uploaded_file is not None:
     bytes_data = uploaded_file.getvalue()
     with open(uploaded_file.name, "wb") as file:
@@ -70,23 +101,31 @@ if uploaded_file is not None:
 
     st.image(uploaded_file, caption="Uploaded Image 🖼️", use_column_width=True)
 
-    file_key = hash(bytes_data)
-    if st.session_state.get("file_key") != file_key:
-        st.session_state["file_key"] = file_key
+    # Only re-run pipeline when the image changes
+    file_changed = st.session_state.last_file_name != uploaded_file.name
 
-        with st.spinner("Processing img2text..."):
-            st.session_state["scenario"] = img2text(uploaded_file.name)
+    # Stage 1: Image to Text
+    if file_changed or st.session_state.scenario is None:
+        st.text("Processing img2text...")
+        st.session_state.scenario = img2text(uploaded_file.name)
 
-        with st.spinner("Generating a story..."):
-            st.session_state["story"] = text2story(st.session_state["scenario"])
+    st.write(f"**Scenario:** {st.session_state.scenario}")
 
-        with st.spinner("Generating audio data..."):
-            st.session_state["audio_data"] = text2audio(st.session_state["story"])
+    # Stage 2: Text to Story
+    if file_changed or st.session_state.story is None:
+        st.text("Generating a story...")
+        st.session_state.story = text2story(st.session_state.scenario)
 
-    st.write(f"**Scenario:** {st.session_state['scenario']}")
-    st.write(f"**Story:** {st.session_state['story']}")
+    st.write(f"**Story:** {st.session_state.story}")
 
-    if st.button("Play Audio ▶️"):
-        audio_array = st.session_state["audio_data"]["audio"]
-        sample_rate = st.session_state["audio_data"]["sampling_rate"]
-        st.audio(audio_array, sample_rate=sample_rate)
+    # Stage 3: Story to Audio
+    if file_changed or st.session_state.audio_data is None:
+        st.text("Generating audio data...")
+        st.session_state.audio_data = text2audio(st.session_state.story)
+
+    st.session_state.last_file_name = uploaded_file.name
+
+    # Show audio player persistently (not inside a button callback)
+    audio_array = st.session_state.audio_data["audio"]
+    sample_rate = st.session_state.audio_data["sampling_rate"]
+    st.audio(audio_array, sample_rate=sample_rate)
